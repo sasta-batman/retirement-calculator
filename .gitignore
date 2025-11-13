@@ -1,0 +1,14 @@
+# Python / Backend
+venv/
+backend/venv/
+__pycache__/
+*.pyc
+.env
+
+# System
+.DS_Store
+.vscode/
+
+# Node / Frontend (Safety net)
+node_modules/
+.next/
