@@ -28,29 +28,34 @@ class RetirementRequest(BaseModel):
 @app.post("/calculate")
 def calculate_retirement(data: RetirementRequest):
     # Simple Logic: Compound Interest Calculation
+    if data.retirement_age < data.current_age:
+        data.retirement_age  = data.current_age
     years = data.retirement_age - data.current_age
     months = years * 12
     monthly_rate = data.annual_return / 100 / 12
     
-    # Future value of current savings
-    future_value = data.current_savings * ((1 + monthly_rate) ** months)
+    # 1. Future Value of Current Savings (Lump Sum)
+    fv_lump_sum = data.current_savings * ((1 + monthly_rate) ** months)
 
-    # Contributions that grow over time: simulate monthly contributions that increase by
-    # `contribution_increase_rate` annually (approximated monthly growth).
-    growth_monthly = data.contribution_increase_rate / 100 / 12
-    contributions_fv = 0.0
-    for m in range(months):
-        # contribution made at month m (0-based) grows for remaining months
-        contribution = data.monthly_contribution * ((1 + growth_monthly) ** m)
-        contributions_fv += contribution * ((1 + monthly_rate) ** (months - 1 - m))
+    current_monthly_contribution = data.monthly_contribution
+    fv_contributions = 0.0
+    
+    for m in range(1, months + 1):
+        # Add contribution for this month
+        fv_contributions += current_monthly_contribution
+        
+        # Compound the entire pot (previous balance + new contribution)
+        fv_contributions *= (1 + monthly_rate)
+        
+        # If a year has passed (every 12th month), increase the contribution amount
+        if m % 12 == 0:
+            current_monthly_contribution *= (1 + data.contribution_increase_rate / 100)
 
-    total_savings = future_value + contributions_fv
+    total_savings = fv_lump_sum + fv_contributions
 
-    # Inflation-adjusted (real) value in today's dollars
-    if years > 0:
-        real_total_savings = total_savings / ((1 + data.inflation_rate / 100) ** years)
-    else:
-        real_total_savings = total_savings
+    # 3. Real Value (Inflation Adjusted)
+    # Discounting the future pile of money back to today's value
+    real_total_savings = total_savings / ((1 + data.inflation_rate / 100) ** years)
 
     # 4% safe withdrawal rule -> monthly income
     monthly_income_in_retirement = total_savings * 0.04 / 12
@@ -83,7 +88,7 @@ def calculate_wealth_projection(data: RetirementRequest):
         current_savings=data.current_savings,
         monthly_contribution=data.monthly_contribution,
         contribution_increase_rate=data.contribution_increase_rate,
-        expected_roi=data.annual_return,
+        expected_yearly_roi=data.annual_return,
         expected_yearly_spending=data.current_yearly_spending,
         tax_rate=data.tax_rate
     )
