@@ -75,10 +75,44 @@ export default function Home() {
   const [result, setResult] = useState<null | any>(null);
   const [loading, setLoading] = useState(false);
   const [projectionData, setProjectionData] = useState<null | any>(null);
+  const [selectedAge, setSelectedAge] = useState<number | null>(null);
 
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: parseFloat(e.target.value) });
+  };
+
+  // Get inflation-adjusted net worth and spending for a given age
+  const getValueAtAge = (age: number) => {
+    if (!projectionData) return null;
+    
+    const ageData = projectionData.projection.find((d: any) => d.Year === age);
+    if (!ageData) return null;
+
+    // Net worth at age is already nominal
+    const nominalNetWorth = ageData['Net Worth'];
+    
+    // Inflation-adjust back to today's value
+    const yearsFromNow = age - formData.current_age;
+    const inflationAdjustedNetWorth = nominalNetWorth / Math.pow(1 + formData.inflation_rate / 100, yearsFromNow);
+    
+    // Spending at age X, accounting for inflation
+    const spendingAtAge = formData.current_yearly_spending * Math.pow(1 + formData.inflation_rate / 100, yearsFromNow);
+    
+    return {
+      inflationAdjustedNetWorth,
+      spendingAtAge
+    };
+  };
+
+  // Handle chart click
+  const handleChartClick = (data: any) => {
+    if (data && data.activeTooltipIndex !== undefined) {
+      const clickedData = projectionData.projection[data.activeTooltipIndex];
+      if (clickedData) {
+        setSelectedAge(clickedData.Year);
+      }
+    }
   };
 
   // Call Backend API
@@ -103,6 +137,9 @@ export default function Home() {
       });
       const projectionDataResponse = await projectionResponse.json();
       setProjectionData(projectionDataResponse);
+      
+      // Set selected age to retirement age by default
+      setSelectedAge(formData.retirement_age);
     } catch (error) {
       console.error("Error connecting to backend:", error);
     }
@@ -174,43 +211,51 @@ export default function Home() {
 
             {result && (
               <div className="space-y-4">
-                <p className="text-gray-400 text-sm uppercase tracking-wider mb-2">Projected Net Worth</p>
-                <h2 className="text-3xl md:text-4xl font-bold text-green-400">{formatNumber(result.total_savings, currency.symbol)}</h2>
-                <div className="mt-2 p-3 bg-gray-800 rounded-lg border border-gray-700">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300">Safe Monthly Income (4%):</span>
-                    <span className="text-white font-bold">{formatNumber(result.monthly_income_in_retirement, currency.symbol)}</span>
+                {/* Age and Year Display */}
+                {selectedAge !== null && (
+                  <div className="bg-gray-800 p-3 rounded-lg border border-gray-600">
+                    <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Selected Age</p>
+                    <p className="text-xl font-bold text-blue-400">{selectedAge} years old</p>
+                    <p className="text-xs text-gray-500 mt-1">{selectedAge - formData.current_age} years from now</p>
                   </div>
-                </div>
-                <div className="mt-2 text-sm text-gray-300 space-y-2">
-                  <div className="flex justify-between">
-                    <span>Inflation-adjusted Value:</span>
-                    <span className="font-bold">{formatNumber(result.real_total_savings, currency.symbol)}</span>
+                )}
+
+                {/* Nominal Net Worth and Inflation-Adjusted */}
+                {selectedAge !== null && getValueAtAge(selectedAge) && (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Net Worth at Age {selectedAge}</p>
+                      <h2 className="text-2xl md:text-3xl font-bold text-cyan-400">
+                        {projectionData?.projection.find((d: any) => d.Year === selectedAge) &&
+                          formatNumber(projectionData.projection.find((d: any) => d.Year === selectedAge)['Net Worth'], currency.symbol)}
+                      </h2>
+                      <p className="text-xs text-gray-500 mt-1">(nominal value)</p>
+                    </div>
+
+                    <div>
+                      <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Inflation-Adjusted Value</p>
+                      <h2 className="text-2xl md:text-3xl font-bold text-green-400">
+                        {formatNumber(getValueAtAge(selectedAge)!.inflationAdjustedNetWorth, currency.symbol)}
+                      </h2>
+                      <p className="text-xs text-gray-500 mt-1">(in today's dollars)</p>
+                    </div>
+
+                    <div className="border-t border-gray-700 pt-3">
+                      <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Annual Spending at Age {selectedAge}</p>
+                      <h2 className="text-2xl md:text-3xl font-bold text-orange-400">
+                        {formatNumber(getValueAtAge(selectedAge)!.spendingAtAge, currency.symbol)}
+                      </h2>
+                      <p className="text-xs text-gray-500 mt-1">(accounting for inflation)</p>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>After-tax Monthly Income:</span>
-                    <span className="font-bold">{formatNumber(result.after_tax_monthly_income, currency.symbol)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Projected Yearly Spending (at retirement):</span>
-                    <span className="font-bold">{formatNumber(result.future_yearly_spending, currency.symbol)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Monthly Spending Needed:</span>
-                    <span className="font-bold">{formatNumber(result.future_yearly_spending / 12, currency.symbol)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Monthly Surplus / (Gap):</span>
-                    <span className="font-bold">{formatNumber(result.after_tax_monthly_income - result.future_yearly_spending / 12, currency.symbol)}</span>
-                  </div>
-                </div>
+                )}
 
                 {/* Wealth Projection Chart */}
                 {projectionData && (
                   <div className="mt-3 pt-3 border-t border-gray-700">
-                    <p className="text-gray-400 text-sm uppercase tracking-wider mb-3">Wealth Projection (Age to 100)</p>
+                    <p className="text-gray-400 text-sm uppercase tracking-wider mb-3">Wealth Projection (Click to Select Age)</p>
                     <ResponsiveContainer width="100%" height={250}>
-                      <LineChart data={projectionData.projection} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                      <LineChart data={projectionData.projection} onClick={handleChartClick} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                         <XAxis 
                           dataKey="Year" 
