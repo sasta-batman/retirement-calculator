@@ -76,6 +76,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [projectionData, setProjectionData] = useState<null | any>(null);
   const [selectedAge, setSelectedAge] = useState<number | null>(null);
+  const [requiredVariables, setRequiredVariables] = useState<null | any>(null);
+  const [requiredVariablesLoading, setRequiredVariablesLoading] = useState(false);
 
   // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,6 +120,7 @@ export default function Home() {
   // Call Backend API
   const calculate = async () => {
     setLoading(true);
+    setRequiredVariablesLoading(true);
     try {
       // Note: Codespaces exposes ports on special URLs. 
       // For local dev, we use localhost:8000.
@@ -138,12 +141,22 @@ export default function Home() {
       const projectionDataResponse = await projectionResponse.json();
       setProjectionData(projectionDataResponse);
       
+      // Fetch required variables
+      const requiredVarsResponse = await fetch("/api/python/find-required-variables", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      const requiredVarsData = await requiredVarsResponse.json();
+      setRequiredVariables(requiredVarsData);
+      
       // Set selected age to retirement age by default
       setSelectedAge(formData.retirement_age);
     } catch (error) {
       console.error("Error connecting to backend:", error);
     }
     setLoading(false);
+    setRequiredVariablesLoading(false);
   };
 
   return (
@@ -199,6 +212,49 @@ export default function Home() {
             >
               {loading ? "Calculating..." : "Calculate Future Wealth"}
             </button>
+
+            {/* Required Variables Section */}
+            {requiredVariablesLoading && (
+              <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 text-center">
+                <p className="text-gray-400 text-sm">Calculating required variables...</p>
+              </div>
+            )}
+
+            {requiredVariables && !requiredVariablesLoading && (
+              <div className="bg-gray-900 p-4 rounded-lg border border-amber-700 space-y-3">
+                <p className="text-amber-400 text-sm font-semibold uppercase tracking-wider">Changing one of these should help you retire</p>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center bg-gray-800 p-2 rounded">
+                    <span className="text-gray-400 text-sm">Required Annual Return</span>
+                    <span className="text-amber-300 font-mono font-semibold">
+                      {requiredVariables.expected_yearly_roi !== null && requiredVariables.expected_yearly_roi !== undefined ? `${requiredVariables.expected_yearly_roi.toFixed(2)}%` : "N/A"}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center bg-gray-800 p-2 rounded">
+                    <span className="text-gray-400 text-sm">Required Monthly Contribution</span>
+                    <span className="text-amber-300 font-mono font-semibold">
+                      {requiredVariables.monthly_contribution !== null && requiredVariables.monthly_contribution !== undefined ? formatNumber(requiredVariables.monthly_contribution, currency.symbol) : "N/A"}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center bg-gray-800 p-2 rounded">
+                    <span className="text-gray-400 text-sm">Required Retirement Age</span>
+                    <span className="text-amber-300 font-mono font-semibold">
+                      {requiredVariables.retirement_age !== null && requiredVariables.retirement_age !== undefined ? `${Math.round(requiredVariables.retirement_age)} years` : "N/A"}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center bg-gray-800 p-2 rounded">
+                    <span className="text-gray-400 text-sm">Required Yearly Spending</span>
+                    <span className="text-amber-300 font-mono font-semibold">
+                      {requiredVariables.expected_yearly_spending !== null && requiredVariables.expected_yearly_spending !== undefined ? formatNumber(requiredVariables.expected_yearly_spending, currency.symbol) : "N/A"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right: Results (shows placeholder on mobile when empty) */}

@@ -99,3 +99,79 @@ def calculate_wealth_projection(data: RetirementRequest):
         "projection": projection_data,
         "retirement_age": data.retirement_age
     }
+
+@app.post("/find-required-variables")
+def find_required_variables(data: RetirementRequest):
+    """
+    Finds the required values for expected_yearly_roi, monthly_contribution, 
+    retirement_age, and expected_yearly_spending to achieve a good retirement.
+    """
+    from return_calculations import find_required_variable_for_good_retirement
+    
+    results = {}
+    
+    # Find required expected_yearly_roi (search range: 0% to 30%)
+    results['expected_yearly_roi'] = find_required_variable_for_good_retirement(
+        variable_to_solve='expected_yearly_roi',
+        search_min=0,
+        search_max=200,
+        current_age=data.current_age,
+        retirement_age=data.retirement_age,
+        inflation_rate=data.inflation_rate,
+        current_savings=data.current_savings,
+        monthly_contribution=data.monthly_contribution,
+        contribution_increase_rate=data.contribution_increase_rate,
+        expected_yearly_roi=data.annual_return,
+        expected_yearly_spending=data.current_yearly_spending,
+        tax_rate=data.tax_rate
+    )
+    
+    # Find required monthly_contribution (search range: 0 to 100,000)
+    results['monthly_contribution'] = find_required_variable_for_good_retirement(
+        variable_to_solve='monthly_contribution',
+        search_min=0,
+        search_max=100000000,
+        current_age=data.current_age,
+        retirement_age=data.retirement_age,
+        inflation_rate=data.inflation_rate,
+        current_savings=data.current_savings,
+        monthly_contribution=data.monthly_contribution,
+        contribution_increase_rate=data.contribution_increase_rate,
+        expected_yearly_roi=data.annual_return,
+        expected_yearly_spending=data.current_yearly_spending,
+        tax_rate=data.tax_rate
+    )
+    
+    # Find required retirement_age (search range: current_age to 100)
+    results['retirement_age'] = find_required_variable_for_good_retirement(
+        variable_to_solve='retirement_age',
+        search_min=data.current_age,
+        search_max=100,
+        current_age=data.current_age,
+        retirement_age=data.retirement_age,
+        inflation_rate=data.inflation_rate,
+        current_savings=data.current_savings,
+        monthly_contribution=data.monthly_contribution,
+        contribution_increase_rate=data.contribution_increase_rate,
+        expected_yearly_roi=data.annual_return,
+        expected_yearly_spending=data.current_yearly_spending,
+        tax_rate=data.tax_rate
+    )
+    
+    # Find required expected_yearly_spending (search range: 0 to 1,000,000)
+    results['expected_yearly_spending'] = find_required_variable_for_good_retirement(
+        variable_to_solve='expected_yearly_spending',
+        search_min=0,
+        search_max=100000000,
+        current_age=data.current_age,
+        retirement_age=data.retirement_age,
+        inflation_rate=data.inflation_rate,
+        current_savings=data.current_savings,
+        monthly_contribution=data.monthly_contribution,
+        contribution_increase_rate=data.contribution_increase_rate,
+        expected_yearly_roi=data.annual_return,
+        expected_yearly_spending=data.current_yearly_spending,
+        tax_rate=data.tax_rate
+    )
+    
+    return results

@@ -110,7 +110,7 @@ def find_required_variable_for_good_retirement(
     current_savings,
     monthly_contribution,
     contribution_increase_rate,
-    expected_roi,
+    expected_yearly_roi,
     expected_yearly_spending,
     tax_rate
 ):
@@ -140,11 +140,14 @@ def find_required_variable_for_good_retirement(
         'current_savings': current_savings,
         'monthly_contribution': monthly_contribution,
         'contribution_increase_rate': contribution_increase_rate,
-        'expected_roi': expected_roi,
+        'expected_yearly_roi': expected_yearly_roi,
         'expected_yearly_spending': expected_yearly_spending,
         'tax_rate': tax_rate
     }
     assert variable_to_solve in params, f"Unknown variable_to_solve: {variable_to_solve}"
+    find_lowest = True
+    if variable_to_solve == 'expected_yearly_spending':
+        find_lowest = False
     
     low = search_min
     high = search_max
@@ -168,11 +171,17 @@ def find_required_variable_for_good_retirement(
             # This 'mid' value works. It's our new potential answer.
             # Now, let's try to find an *even lower* value that also works.
             best_so_far = mid
-            high = mid
+            if find_lowest:
+                high = mid
+            else:
+                low = mid
         else:
             # This 'mid' value FAILED (net worth was too low).
             # We must search for a *higher* value.
-            low = mid
+            if find_lowest:
+                low = mid
+            else:
+                high = mid
             
         # Optional: Check if we've found a precise-enough answer
         if (high - low) < 1e-6: # Stop if range is tiny
