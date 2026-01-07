@@ -1,6 +1,11 @@
 "use client";
 import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { 
+  calculateSummary, 
+  calculateRetirementNetWorth, 
+  findRequiredVariable 
+} from "@/lib/calculations";
 
 // Top 10 world currencies
 const CURRENCIES = [
@@ -117,47 +122,32 @@ export default function Home() {
     }
   };
 
-  // Call Backend API
-  const calculate = async () => {
+  const calculate = () => {
     setLoading(true);
-    setRequiredVariablesLoading(true);
-    try {
-      // Note: Codespaces exposes ports on special URLs. 
-      // For local dev, we use localhost:8000.
-      const response = await fetch("/api/python/calculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      const data = await response.json();
-      setResult(data);
+    
+    // 1. Calculate Summary (was /api/python/calculate)
+    const summary = calculateSummary(formData);
+    setResult(summary);
 
-      // Fetch projection data for the chart
-      const projectionResponse = await fetch("/api/python/calculate-projection", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      const projectionDataResponse = await projectionResponse.json();
-      setProjectionData(projectionDataResponse);
-      
-      // Fetch required variables
-      const requiredVarsResponse = await fetch("/api/python/find-required-variables", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      const requiredVarsData = await requiredVarsResponse.json();
-      setRequiredVariables(requiredVarsData);
-      
-      // Set selected age to retirement age by default
-      setSelectedAge(formData.retirement_age);
-    } catch (error) {
-      console.error("Error connecting to backend:", error);
-    }
+    // 2. Calculate Projection (was /api/python/calculate-projection)
+    const projection = calculateRetirementNetWorth(formData);
+    setProjectionData({
+      projection: projection,
+      retirement_age: formData.retirement_age
+    });
+
+    // 3. Calculate Required Variables (was /api/python/find-required-variables)
+    const required = {
+      expected_yearly_roi: findRequiredVariable('annual_return', 0, 200, formData),
+      monthly_contribution: findRequiredVariable('monthly_contribution', 0, 100000000, formData),
+      retirement_age: findRequiredVariable('retirement_age', formData.current_age, 100, formData),
+      expected_yearly_spending: findRequiredVariable('current_yearly_spending', 0, 100000000, formData),
+    };
+    setRequiredVariables(required);
+    
+    setSelectedAge(formData.retirement_age);
     setLoading(false);
-    setRequiredVariablesLoading(false);
-  };
+  };  
 
   return (
     <main className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center p-4">
