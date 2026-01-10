@@ -77,7 +77,6 @@ export default function Home() {
     tax_rate: 20,
   });
 
-  const [result, setResult] = useState<null | any>(null);
   const [loading, setLoading] = useState(false);
   const [projectionData, setProjectionData] = useState<null | any>(null);
   const [selectedAge, setSelectedAge] = useState<number | null>(null);
@@ -124,19 +123,15 @@ export default function Home() {
 
   const calculate = () => {
     setLoading(true);
-    
-    // 1. Calculate Summary (was /api/python/calculate)
-    const summary = calculateSummary(formData);
-    setResult(summary);
 
-    // 2. Calculate Projection (was /api/python/calculate-projection)
+    // 1. Calculate Projection (was /api/python/calculate-projection)
     const projection = calculateRetirementNetWorth(formData);
     setProjectionData({
       projection: projection,
       retirement_age: formData.retirement_age
     });
 
-    // 3. Calculate Required Variables (was /api/python/find-required-variables)
+    // 2. Calculate Required Variables (was /api/python/find-required-variables)
     const required = {
       expected_yearly_roi: findRequiredVariable('annual_return', 0, 200, formData),
       monthly_contribution: findRequiredVariable('monthly_contribution', 0, 100000000, formData),
@@ -249,13 +244,7 @@ export default function Home() {
 
           {/* Right: Results (shows placeholder on mobile when empty) */}
           <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 min-h-[200px]">
-            {!result && (
-              <div className="h-full flex items-center justify-center text-gray-400 text-sm">
-                Results will appear here after calculation.
-              </div>
-            )}
-
-            {result && (
+            {(
               <div className="space-y-4">
                 {/* Age and Year Display */}
                 {selectedAge !== null && (

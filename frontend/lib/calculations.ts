@@ -16,49 +16,6 @@ export interface ProjectionPoint {
 }
 
 /**
- * Ported from calculate_retirement in backend/main.py
- * Provides the high-level summary results
- */
-export function calculateSummary(data: RetirementInputs) {
-  let { retirement_age } = data;
-  if (retirement_age < data.current_age) retirement_age = data.current_age;
-
-  const years = retirement_age - data.current_age;
-  const months = years * 12;
-  const monthly_rate = data.annual_return / 100 / 12;
-
-  // 1. Future Value of Current Savings
-  const fv_lump_sum = data.current_savings * Math.pow(1 + monthly_rate, months);
-
-  // 2. Future Value of Contributions
-  let current_monthly_contribution = data.monthly_contribution;
-  let fv_contributions = 0.0;
-
-  for (let m = 1; m <= months; m++) {
-    fv_contributions += current_monthly_contribution;
-    fv_contributions *= (1 + monthly_rate);
-    if (m % 12 === 0) {
-      current_monthly_contribution *= (1 + data.contribution_increase_rate / 100);
-    }
-  }
-
-  const total_savings = fv_lump_sum + fv_contributions;
-  const real_total_savings = total_savings / Math.pow(1 + data.inflation_rate / 100, years);
-  const monthly_income_in_retirement = (total_savings * 0.04) / 12;
-  const after_tax_monthly_income = monthly_income_in_retirement * (1 - data.tax_rate / 100);
-  const future_yearly_spending = data.current_yearly_spending * Math.pow(1 + data.inflation_rate / 100, years);
-
-  return {
-    years_to_grow: years,
-    total_savings: Math.round(total_savings * 100) / 100,
-    real_total_savings: Math.round(real_total_savings * 100) / 100,
-    monthly_income_in_retirement: Math.round(monthly_income_in_retirement * 100) / 100,
-    after_tax_monthly_income: Math.round(after_tax_monthly_income * 100) / 100,
-    future_yearly_spending: Math.round(future_yearly_spending * 100) / 100,
-  };
-}
-
-/**
  * Ported from calculate_retirement_net_worth in backend/return_calculations.py
  */
 export function calculateRetirementNetWorth(inputs: RetirementInputs): ProjectionPoint[] {
