@@ -39,11 +39,7 @@ export default function ProjectionChart({
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={data} onClick={handleClick} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
           <defs>
-            <linearGradient id="gradContributions" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.5} />
-              <stop offset="95%" stopColor="#6366f1" stopOpacity={0.05} />
-            </linearGradient>
-            <linearGradient id="gradGrowth" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="gradNetWorth" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.5} />
               <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.05} />
             </linearGradient>
@@ -89,20 +85,9 @@ export default function ProjectionChart({
           />
           <Area
             type="monotone"
-            dataKey="Total Contributions"
-            stackId="1"
-            stroke="#6366f1"
-            fill="url(#gradContributions)"
-            strokeWidth={1.5}
-            dot={false}
-            isAnimationActive={false}
-          />
-          <Area
-            type="monotone"
-            dataKey="Compound Growth"
-            stackId="1"
+            dataKey="Net Worth"
             stroke="#22d3ee"
-            fill="url(#gradGrowth)"
+            fill="url(#gradNetWorth)"
             strokeWidth={1.5}
             dot={false}
             isAnimationActive={false}

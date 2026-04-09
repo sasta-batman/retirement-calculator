@@ -172,7 +172,7 @@ export default function Home() {
           <div className="lg:col-span-2 space-y-5">
             <div className="glass-card p-5 space-y-4">
               <p className="section-heading">Personal Details</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InputGroup label="Current Age" name="current_age" value={formData.current_age}
                   onChange={handleChange} min={18} max={80} step={1} showSlider />
                 <InputGroup label="Retirement Age" name="retirement_age" value={formData.retirement_age}
@@ -182,12 +182,14 @@ export default function Home() {
                 onChange={handleChange} hint={formatFull(formData.current_savings, currency)} />
               <InputGroup label="Monthly Contribution" name="monthly_contribution"
                 value={formData.monthly_contribution} onChange={handleChange}
-                hint={formatFull(formData.monthly_contribution, currency)}
-                min={0} max={50000} step={100} showSlider />
+                hint={formatFull(formData.monthly_contribution, currency)} />
+              <InputGroup label="Contribution Increase (%)" name="contribution_increase_rate"
+                value={formData.contribution_increase_rate} onChange={handleChange}
+                tooltip={TOOLTIPS.contribution_increase_rate} />
             </div>
 
             <div className="glass-card p-5 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <p className="section-heading mb-0">Return & Inflation</p>
                 <div className="flex gap-1.5">
                   {Object.entries(PRESETS).map(([key, p]) => (
@@ -201,19 +203,14 @@ export default function Home() {
               <InputGroup label="Annual Return (%)" name="annual_return" value={formData.annual_return}
                 onChange={handleChange} tooltip={TOOLTIPS.annual_return}
                 min={0} max={25} step={0.5} showSlider />
-              <div className="grid grid-cols-2 gap-4">
-                <InputGroup label="Inflation Rate (%)" name="inflation_rate" value={formData.inflation_rate}
-                  onChange={handleChange} tooltip={TOOLTIPS.inflation_rate}
-                  min={0} max={10} step={0.5} showSlider />
-                <InputGroup label="Contribution Increase (%)" name="contribution_increase_rate"
-                  value={formData.contribution_increase_rate} onChange={handleChange}
-                  tooltip={TOOLTIPS.contribution_increase_rate} />
-              </div>
+              <InputGroup label="Inflation Rate (%)" name="inflation_rate" value={formData.inflation_rate}
+                onChange={handleChange} tooltip={TOOLTIPS.inflation_rate}
+                min={0} max={10} step={0.5} showSlider />
             </div>
 
             <div className="glass-card p-5 space-y-4">
               <p className="section-heading">Spending & Tax</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InputGroup label="Yearly Spending" name="current_yearly_spending"
                   value={formData.current_yearly_spending} onChange={handleChange}
                   hint={formatFull(formData.current_yearly_spending, currency)}
@@ -221,11 +218,17 @@ export default function Home() {
                 <InputGroup label="Tax Rate (%)" name="tax_rate" value={formData.tax_rate}
                   onChange={handleChange} tooltip={TOOLTIPS.tax_rate} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[11px] text-gray-400 uppercase font-bold tracking-wider mb-1.5">
-                    Spending Model
-                  </p>
+                  <div className="flex items-center mb-1.5">
+                    <p className="text-[11px] text-gray-400 uppercase font-bold tracking-wider">
+                      Spending Model
+                    </p>
+                    <span className="tooltip-trigger">
+                      ?
+                      <span className="tooltip-content">Flat: constant inflation-adjusted spending. Smile: higher early (active) and late (healthcare) years. Rising: spending linearly doubles by age 100.</span>
+                    </span>
+                  </div>
                   <div className="toggle-group">
                     <button className={`toggle-btn ${formData.spending_model === "flat" ? "active" : ""}`}
                       onClick={() => setFormData((p) => ({ ...p, spending_model: "flat" }))}>
@@ -233,7 +236,11 @@ export default function Home() {
                     </button>
                     <button className={`toggle-btn ${formData.spending_model === "smile" ? "active" : ""}`}
                       onClick={() => setFormData((p) => ({ ...p, spending_model: "smile" }))}>
-                      Smile Curve
+                      Smile
+                    </button>
+                    <button className={`toggle-btn ${formData.spending_model === "increasing" ? "active" : ""}`}
+                      onClick={() => setFormData((p) => ({ ...p, spending_model: "increasing" }))}>
+                      Rising
                     </button>
                   </div>
                 </div>

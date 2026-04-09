@@ -9,7 +9,7 @@ export interface RetirementInputs {
   current_yearly_spending: number;
   tax_rate: number;
   target_buffer: number; // desired leftover at end of life
-  spending_model: 'flat' | 'smile'; // spending curve type
+  spending_model: 'flat' | 'smile' | 'increasing'; // spending curve type
 }
 
 export interface ProjectionPoint {
@@ -46,6 +46,18 @@ function getSmileMultiplier(yearsIntoRetirement: number, totalRetirementYears: n
   // Parabola: higher at start and end, lower in middle
   // f(t) = 1 + 0.2 * (4t^2 - 4t + 1) => ranges from 1.2 at edges to 1.0 at center
   return 1 + 0.15 * (4 * t * t - 4 * t + 1);
+}
+
+/**
+ * Increasing spending curve multiplier.
+ * Starts at 1.0 and grows linearly to 2.0 by the end of retirement.
+ * Models a lifestyle where spending steadily rises (e.g., growing hobbies, travel, healthcare).
+ */
+function getIncreasingMultiplier(yearsIntoRetirement: number, totalRetirementYears: number): number {
+  if (totalRetirementYears <= 0) return 1;
+  const t = yearsIntoRetirement / totalRetirementYears; // 0 to 1
+  // Linear ramp: 1.0 at retirement, 2.0 at end of life
+  return 1 + 1.0 * t;
 }
 
 /**
@@ -150,6 +162,8 @@ export function calculateRetirementNetWorth(inputs: RetirementInputs): Projectio
 
       if (inputs.spending_model === 'smile') {
         effectiveWithdrawal *= getSmileMultiplier(yearsIntoRetirement, totalRetirementYears);
+      } else if (inputs.spending_model === 'increasing') {
+        effectiveWithdrawal *= getIncreasingMultiplier(yearsIntoRetirement, totalRetirementYears);
       }
 
       // Update the last result's Annual Withdrawal
