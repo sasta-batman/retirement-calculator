@@ -1,70 +1,48 @@
 "use client";
-import { useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { 
-  calculateRetirementNetWorth, 
-  findRequiredVariable 
+import { useState, useEffect, useCallback } from "react";
+import {
+  calculateRetirementNetWorth,
+  findRequiredVariable,
+  generateInsights,
+  generateNarrative,
+  type RetirementInputs,
+  type ProjectionResult,
 } from "@/lib/calculations";
+import { CURRENCIES, formatFull } from "@/lib/currency";
+import InputGroup from "./components/InputGroup";
+import ProjectionChart from "./components/ProjectionChart";
+import Milestones from "./components/Milestones";
+import InsightsPanel from "./components/InsightsPanel";
+import Narrative from "./components/Narrative";
 
-// Top 10 world currencies
-const CURRENCIES = [
-  { code: "USD", symbol: "$", name: "US Dollar" },
-  { code: "EUR", symbol: "€", name: "Euro" },
-  { code: "GBP", symbol: "£", name: "British Pound" },
-  { code: "JPY", symbol: "¥", name: "Japanese Yen" },
-  { code: "CNY", symbol: "¥", name: "Chinese Yuan" },
-  { code: "INR", symbol: "₹", name: "Indian Rupee" },
-  { code: "AUD", symbol: "A$", name: "Australian Dollar" },
-  { code: "CAD", symbol: "C$", name: "Canadian Dollar" },
-  { code: "CHF", symbol: "CHF", name: "Swiss Franc" },
-  { code: "SGD", symbol: "S$", name: "Singapore Dollar" },
-];
 
-// Format numbers dynamically (k, M, B)
-function formatNumber(value: number, symbol: string = "$"): string {
-  if (symbol != "₹") {
-    if (Math.abs(value) >= 1e9) {
-      return `${symbol}${(value / 1e9).toFixed(2)}B`;
-    }
-    if (Math.abs(value) >= 1e6) {
-      return `${symbol}${(value / 1e6).toFixed(2)}M`;
-    }
-    if (Math.abs(value) >= 1e3) {
-      return `${symbol}${(value / 1e3).toFixed(2)}k`;
-    }
-    return `${symbol}${value.toFixed(0)}`;
-  } else {
-    // Indian Rupee formatting
-    const absValue = Math.abs(value);
-    if (absValue >= 1e7) {
-      return `₹${(value / 1e7).toFixed(2)}Cr`;
-    }
-    if (absValue >= 1e5) {
-      return `₹${(value / 1e5).toFixed(2)}L`;
-    }
-    return `₹${value.toFixed(0)}`;
-  }
-}
+const PRESETS = {
+  conservative: { annual_return: 5, label: "Conservative" },
+  moderate: { annual_return: 8, label: "Moderate" },
+  aggressive: { annual_return: 12, label: "Aggressive" },
+};
 
-// Format for chart axis (more compact)
-function formatChartAxis(value: any): string {
-  const num = typeof value === 'number' ? value : parseFloat(value);
-  if (Math.abs(num) >= 1e9) {
-    return `$${(num / 1e9).toFixed(1)}B`;
-  }
-  if (Math.abs(num) >= 1e6) {
-    return `$${(num / 1e6).toFixed(1)}M`;
-  }
-  if (Math.abs(num) >= 1e3) {
-    return `$${(num / 1e3).toFixed(1)}k`;
-  }
-  return `$${num.toFixed(0)}`;
-}
+const TOOLTIPS: Record<string, string> = {
+  annual_return:
+    "The average historical return of the S&P 500 is ~10% before inflation (~7% after). Bond-heavy portfolios average 4–6%.",
+  inflation_rate:
+    "Historical US inflation averages ~3%. The Fed targets 2%. Higher inflation erodes purchasing power over time.",
+  contribution_increase_rate:
+    "How much you increase contributions each year — ideally matching or exceeding your salary growth rate.",
+  tax_rate:
+    "Your effective tax rate on withdrawals. Tax-advantaged accounts (401k, IRA) can reduce this significantly.",
+  current_yearly_spending:
+    "Your total annual spending today. This is projected forward with inflation to estimate retirement needs.",
+  target_buffer:
+    "The amount you want left at age 100 — a safety net for unexpected expenses, inheritance, or market downturns.",
+};
+
 
 export default function Home() {
-  // State to store inputs
+  const [isDark, setIsDark] = useState(true);
   const [currency, setCurrency] = useState(CURRENCIES[0]);
-  const [formData, setFormData] = useState({
+  const [activePreset, setActivePreset] = useState<string | null>("moderate");
+  const [formData, setFormData] = useState<RetirementInputs>({
     current_age: 30,
     retirement_age: 60,
     current_savings: 50000,
@@ -74,287 +52,302 @@ export default function Home() {
     contribution_increase_rate: 3,
     current_yearly_spending: 40000,
     tax_rate: 20,
+    target_buffer: 0,
+    spending_model: "flat",
   });
 
-  const [loading, setLoading] = useState(false);
-  const [projectionData, setProjectionData] = useState<null | any>(null);
-  const [selectedAge, setSelectedAge] = useState<number | null>(null);
-  const [requiredVariables, setRequiredVariables] = useState<null | any>(null);
-  const [requiredVariablesLoading, setRequiredVariablesLoading] = useState(false);
+  const [result, setResult] = useState<ProjectionResult | null>(null);
+  const [selectedAge, setSelectedAge] = useState<number>(60);
+  const [requiredVariables, setRequiredVariables] = useState<any>(null);
+  const [insights, setInsights] = useState<string[]>([]);
+  const [narrative, setNarrative] = useState("");
 
-  // Handle input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: parseFloat(e.target.value) });
-  };
+  // Apply theme to <html>
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+  }, [isDark]);
 
-  // Get inflation-adjusted net worth and spending for a given age
-  const getValueAtAge = (age: number) => {
-    if (!projectionData) return null;
-    
-    const ageData = projectionData.projection.find((d: any) => d.Year === age);
-    if (!ageData) return null;
+  // Real-time calculations
+  const calculate = useCallback(() => {
+    const res = calculateRetirementNetWorth(formData);
+    setResult(res);
 
-    // Net worth at age is already nominal
-    const nominalNetWorth = ageData['Net Worth'];
-    
-    // Inflation-adjust back to today's value
-    const yearsFromNow = age - formData.current_age;
-    const inflationAdjustedNetWorth = nominalNetWorth / Math.pow(1 + formData.inflation_rate / 100, yearsFromNow);
-    
-    // Spending at age X, accounting for inflation
-    const spendingAtAge = formData.current_yearly_spending * Math.pow(1 + formData.inflation_rate / 100, yearsFromNow);
-    
-    return {
-      inflationAdjustedNetWorth,
-      spendingAtAge
+    const req = {
+      expected_yearly_roi: findRequiredVariable("annual_return", 0, 200, formData),
+      monthly_contribution: findRequiredVariable("monthly_contribution", 0, 100000000, formData),
+      retirement_age: findRequiredVariable("retirement_age", formData.current_age, 100, formData),
+      expected_yearly_spending: findRequiredVariable("current_yearly_spending", 0, 100000000, formData),
     };
-  };
+    setRequiredVariables(req);
+    setInsights(generateInsights(formData, res, (n) => formatFull(n, currency)));
+    setNarrative(generateNarrative(formData, res, (n) => formatFull(n, currency)));
+  }, [formData, currency]);
 
-  // Handle chart click
-  const handleChartClick = (data: any) => {
-    if (data && data.activeTooltipIndex !== undefined) {
-      const clickedData = projectionData.projection[data.activeTooltipIndex];
-      if (clickedData) {
-        setSelectedAge(clickedData.Year);
-      }
+  useEffect(() => {
+    calculate();
+  }, [calculate]);
+
+  useEffect(() => {
+    setSelectedAge(formData.retirement_age);
+  }, [formData.retirement_age]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    if (isNaN(val)) return;
+    setFormData((prev) => ({ ...prev, [e.target.name]: val }));
+    if (e.target.name === "annual_return") {
+      const match = Object.entries(PRESETS).find(([, p]) => p.annual_return === val);
+      setActivePreset(match ? match[0] : null);
     }
   };
 
-  const calculate = () => {
-    setLoading(true);
+  const applyPreset = (key: string) => {
+    const p = PRESETS[key as keyof typeof PRESETS];
+    setFormData((prev) => ({ ...prev, annual_return: p.annual_return }));
+    setActivePreset(key);
+  };
 
-    // 1. Calculate Projection (was /api/python/calculate-projection)
-    const projection = calculateRetirementNetWorth(formData);
-    setProjectionData({
-      projection: projection,
-      retirement_age: formData.retirement_age
-    });
+  const getValueAtAge = (age: number) => {
+    if (!result) return null;
+    const ageData = result.projection.find((d) => d.Year === age);
+    if (!ageData) return null;
+    const yearsFromNow = age - formData.current_age;
+    const inflationAdjustedNetWorth =
+      ageData["Net Worth"] / Math.pow(1 + formData.inflation_rate / 100, yearsFromNow);
+    const spendingAtAge =
+      formData.current_yearly_spending * Math.pow(1 + formData.inflation_rate / 100, yearsFromNow);
+    return { nominalNetWorth: ageData["Net Worth"], inflationAdjustedNetWorth, spendingAtAge };
+  };
 
-    // 2. Calculate Required Variables (was /api/python/find-required-variables)
-    const required = {
-      expected_yearly_roi: findRequiredVariable('annual_return', 0, 200, formData),
-      monthly_contribution: findRequiredVariable('monthly_contribution', 0, 100000000, formData),
-      retirement_age: findRequiredVariable('retirement_age', formData.current_age, 100, formData),
-      expected_yearly_spending: findRequiredVariable('current_yearly_spending', 0, 100000000, formData),
-    };
-    setRequiredVariables(required);
-    
-    setSelectedAge(formData.retirement_age);
-    setLoading(false);
-  };  
+  const ageData = getValueAtAge(selectedAge);
 
   return (
-    <main className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md md:max-w-4xl lg:max-w-5xl bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
-        
+    <main className="min-h-screen flex items-start justify-center p-4 pt-8"
+      style={{ background: "linear-gradient(180deg, var(--page-bg-from) 0%, var(--page-bg-to) 100%)", transition: "background 0.3s ease" }}>
+      <div className="w-full max-w-6xl space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
-          <div className="flex justify-between items-start mb-3">
-            <div>
-              <h1 className="text-2xl font-bold text-white">Retirement Planner</h1>
-              <p className="text-blue-100 text-sm mt-1">AI-Powered Projections</p>
-            </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold gradient-text">Retirement Planner</h1>
+            <p className="text-sm text-gray-500 mt-1">Interactive Financial Projections</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs hidden sm:inline" style={{ color: "var(--text-muted)" }}>Symbol display only</span>
             <select
               value={currency.code}
-              onChange={(e) => setCurrency(CURRENCIES.find(c => c.code === e.target.value)!)}
-              className="bg-blue-500 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded font-medium transition-colors cursor-pointer"
+              onChange={(e) => setCurrency(CURRENCIES.find((c) => c.code === e.target.value)!)}
+              className="bg-indigo-600/20 text-indigo-300 text-sm px-3 py-2 rounded-lg border border-indigo-500/30 cursor-pointer focus:outline-none"
               title="Select Currency"
             >
-              {CURRENCIES.map((curr) => (
-                <option key={curr.code} value={curr.code}>
-                  {curr.code}
-                </option>
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.code}</option>
               ))}
             </select>
+            {/* Theme Toggle */}
+            <button
+              onClick={() => setIsDark((d) => !d)}
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              style={{
+                width: 40, height: 40,
+                borderRadius: "50%",
+                border: "1px solid var(--glass-border)",
+                background: "var(--glass-bg)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 18,
+                transition: "all 0.2s ease",
+                flexShrink: 0,
+              }}
+            >
+              {isDark ? "☀️" : "🌙"}
+            </button>
           </div>
         </div>
 
-        {/* Responsive content: stacked on mobile, two-column on md+ */}
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left: Inputs */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <InputGroup label="Current Age" name="current_age" value={formData.current_age} onChange={handleChange} />
-              <InputGroup label="Retirement Age" name="retirement_age" value={formData.retirement_age} onChange={handleChange} />
-            </div>
-            <InputGroup label="Current Savings" name="current_savings" value={formData.current_savings} onChange={handleChange} hint={formatNumber(formData.current_savings, currency.symbol)} />
-            <InputGroup label="Monthly Contribution" name="monthly_contribution" value={formData.monthly_contribution} onChange={handleChange} hint={formatNumber(formData.monthly_contribution, currency.symbol)}/>
-            <InputGroup label="Annual Return (%)" name="annual_return" value={formData.annual_return} onChange={handleChange} />
-            <div className="grid grid-cols-2 gap-4">
-              <InputGroup label="Inflation Rate (%)" name="inflation_rate" value={formData.inflation_rate} onChange={handleChange} />
-              <InputGroup label="Contribution Increase Rate (%)" name="contribution_increase_rate" value={formData.contribution_increase_rate} onChange={handleChange} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <InputGroup label="Current Yearly Spending" name="current_yearly_spending" value={formData.current_yearly_spending} onChange={handleChange} hint={formatNumber(formData.current_yearly_spending, currency.symbol)}/>
-              <InputGroup label="Tax Rate (%)" name="tax_rate" value={formData.tax_rate} onChange={handleChange} />
-            </div>
-
-            <button
-              onClick={calculate}
-              disabled={loading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-semibold transition-colors mt-4"
-            >
-              {loading ? "Calculating..." : "Calculate Future Wealth"}
-            </button>
-
-            {/* Required Variables Section */}
-            {requiredVariablesLoading && (
-              <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 text-center">
-                <p className="text-gray-400 text-sm">Calculating required variables...</p>
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Left: Inputs (2 cols) */}
+          <div className="lg:col-span-2 space-y-5">
+            <div className="glass-card p-5 space-y-4">
+              <p className="section-heading">Personal Details</p>
+              <div className="grid grid-cols-2 gap-4">
+                <InputGroup label="Current Age" name="current_age" value={formData.current_age}
+                  onChange={handleChange} min={18} max={80} step={1} showSlider />
+                <InputGroup label="Retirement Age" name="retirement_age" value={formData.retirement_age}
+                  onChange={handleChange} min={formData.current_age + 1} max={100} step={1} showSlider />
               </div>
-            )}
+              <InputGroup label="Current Savings" name="current_savings" value={formData.current_savings}
+                onChange={handleChange} hint={formatFull(formData.current_savings, currency)} />
+              <InputGroup label="Monthly Contribution" name="monthly_contribution"
+                value={formData.monthly_contribution} onChange={handleChange}
+                hint={formatFull(formData.monthly_contribution, currency)}
+                min={0} max={50000} step={100} showSlider />
+            </div>
 
-            {requiredVariables && !requiredVariablesLoading && (
-              <div className="bg-gray-900 p-4 rounded-lg border border-amber-700 space-y-3">
-                <p className="text-amber-400 text-sm font-semibold uppercase tracking-wider">Changing one of these should help you retire</p>
-                
+            <div className="glass-card p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="section-heading mb-0">Return & Inflation</p>
+                <div className="flex gap-1.5">
+                  {Object.entries(PRESETS).map(([key, p]) => (
+                    <button key={key} onClick={() => applyPreset(key)}
+                      className={`preset-btn ${activePreset === key ? "active" : ""}`}>
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <InputGroup label="Annual Return (%)" name="annual_return" value={formData.annual_return}
+                onChange={handleChange} tooltip={TOOLTIPS.annual_return}
+                min={0} max={25} step={0.5} showSlider />
+              <div className="grid grid-cols-2 gap-4">
+                <InputGroup label="Inflation Rate (%)" name="inflation_rate" value={formData.inflation_rate}
+                  onChange={handleChange} tooltip={TOOLTIPS.inflation_rate}
+                  min={0} max={10} step={0.5} showSlider />
+                <InputGroup label="Contribution Increase (%)" name="contribution_increase_rate"
+                  value={formData.contribution_increase_rate} onChange={handleChange}
+                  tooltip={TOOLTIPS.contribution_increase_rate} />
+              </div>
+            </div>
+
+            <div className="glass-card p-5 space-y-4">
+              <p className="section-heading">Spending & Tax</p>
+              <div className="grid grid-cols-2 gap-4">
+                <InputGroup label="Yearly Spending" name="current_yearly_spending"
+                  value={formData.current_yearly_spending} onChange={handleChange}
+                  hint={formatFull(formData.current_yearly_spending, currency)}
+                  tooltip={TOOLTIPS.current_yearly_spending} />
+                <InputGroup label="Tax Rate (%)" name="tax_rate" value={formData.tax_rate}
+                  onChange={handleChange} tooltip={TOOLTIPS.tax_rate} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-[11px] text-gray-400 uppercase font-bold tracking-wider mb-1.5">
+                    Spending Model
+                  </p>
+                  <div className="toggle-group">
+                    <button className={`toggle-btn ${formData.spending_model === "flat" ? "active" : ""}`}
+                      onClick={() => setFormData((p) => ({ ...p, spending_model: "flat" }))}>
+                      Flat
+                    </button>
+                    <button className={`toggle-btn ${formData.spending_model === "smile" ? "active" : ""}`}
+                      onClick={() => setFormData((p) => ({ ...p, spending_model: "smile" }))}>
+                      Smile Curve
+                    </button>
+                  </div>
+                </div>
+                <InputGroup label="Target Buffer" name="target_buffer" value={formData.target_buffer}
+                  onChange={handleChange} tooltip={TOOLTIPS.target_buffer}
+                  hint={formData.target_buffer > 0 ? formatFull(formData.target_buffer, currency) : undefined} />
+              </div>
+            </div>
+
+            {/* Required Variables */}
+            {requiredVariables && (
+              <div className="glass-card p-5 space-y-3" style={{ borderColor: "rgba(251,191,36,0.2)" }}>
+                <p className="section-heading" style={{ color: "#fbbf24" }}>
+                  🎯 What it takes to retire
+                </p>
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center bg-gray-800 p-2 rounded">
-                    <span className="text-gray-400 text-sm">Required Annual Return</span>
-                    <span className="text-amber-300 font-mono font-semibold">
-                      {requiredVariables.expected_yearly_roi !== null && requiredVariables.expected_yearly_roi !== undefined ? `${requiredVariables.expected_yearly_roi.toFixed(2)}%` : "N/A"}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center bg-gray-800 p-2 rounded">
-                    <span className="text-gray-400 text-sm">Required Monthly Contribution</span>
-                    <span className="text-amber-300 font-mono font-semibold">
-                      {requiredVariables.monthly_contribution !== null && requiredVariables.monthly_contribution !== undefined ? formatNumber(requiredVariables.monthly_contribution, currency.symbol) : "N/A"}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center bg-gray-800 p-2 rounded">
-                    <span className="text-gray-400 text-sm">Required Retirement Age</span>
-                    <span className="text-amber-300 font-mono font-semibold">
-                      {requiredVariables.retirement_age !== null && requiredVariables.retirement_age !== undefined ? `${Math.round(requiredVariables.retirement_age)} years` : "N/A"}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center bg-gray-800 p-2 rounded">
-                    <span className="text-gray-400 text-sm">Required Yearly Spending</span>
-                    <span className="text-amber-300 font-mono font-semibold">
-                      {requiredVariables.expected_yearly_spending !== null && requiredVariables.expected_yearly_spending !== undefined ? formatNumber(requiredVariables.expected_yearly_spending, currency.symbol) : "N/A"}
-                    </span>
-                  </div>
+                  {[
+                    { label: "Required Annual Return", value: requiredVariables.expected_yearly_roi, fmt: (v: number) => `${v.toFixed(2)}%` },
+                    { label: "Required Monthly Contribution", value: requiredVariables.monthly_contribution, fmt: (v: number) => formatFull(v, currency) },
+                    { label: "Required Retirement Age", value: requiredVariables.retirement_age, fmt: (v: number) => `${Math.round(v)} years` },
+                    { label: "Required Yearly Spending", value: requiredVariables.expected_yearly_spending, fmt: (v: number) => formatFull(v, currency) },
+                  ].map((item) => (
+                    <div key={item.label} className="flex justify-between items-center p-2.5 rounded-lg" style={{ background: "var(--bg-input)" }}>
+                      <span className="text-gray-400 text-sm">{item.label}</span>
+                      <span className="text-amber-300 font-mono font-semibold text-sm">
+                        {item.value != null ? item.fmt(item.value) : "N/A"}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Right: Results (shows placeholder on mobile when empty) */}
-          <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 min-h-[200px]">
-            {(
-              <div className="space-y-4">
-                {/* Age and Year Display */}
-                {selectedAge !== null && (
-                  <div className="bg-gray-800 p-3 rounded-lg border border-gray-600">
-                    <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Selected Age</p>
-                    <p className="text-xl font-bold text-blue-400">{selectedAge} years old</p>
-                    <p className="text-xs text-gray-500 mt-1">{selectedAge - formData.current_age} years from now</p>
-                  </div>
-                )}
-
-                {/* Nominal Net Worth and Inflation-Adjusted */}
-                {selectedAge !== null && getValueAtAge(selectedAge) && (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Net Worth at Age {selectedAge}</p>
-                      <h2 className="text-2xl md:text-3xl font-bold text-cyan-400">
-                        {projectionData?.projection.find((d: any) => d.Year === selectedAge) &&
-                          formatNumber(projectionData.projection.find((d: any) => d.Year === selectedAge)['Net Worth'], currency.symbol)}
-                      </h2>
-                      <p className="text-xs text-gray-500 mt-1">(nominal value)</p>
-                    </div>
-
-                    <div>
-                      <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Inflation-Adjusted Value</p>
-                      <h2 className="text-2xl md:text-3xl font-bold text-green-400">
-                        {formatNumber(getValueAtAge(selectedAge)!.inflationAdjustedNetWorth, currency.symbol)}
-                      </h2>
-                      <p className="text-xs text-gray-500 mt-1">(in today's dollars)</p>
-                    </div>
-
-                    <div className="border-t border-gray-700 pt-3">
-                      <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Annual Spending at Age {selectedAge}</p>
-                      <h2 className="text-2xl md:text-3xl font-bold text-orange-400">
-                        {formatNumber(getValueAtAge(selectedAge)!.spendingAtAge, currency.symbol)}
-                      </h2>
-                      <p className="text-xs text-gray-500 mt-1">(accounting for inflation)</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Wealth Projection Chart */}
-                {projectionData && (
-                  <div className="mt-3 pt-3 border-t border-gray-700">
-                    <p className="text-gray-400 text-sm uppercase tracking-wider mb-3">Wealth Projection (Click to Select Age)</p>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <LineChart data={projectionData.projection} onClick={handleChartClick} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                        <XAxis 
-                          dataKey="Year" 
-                          stroke="#999" 
-                          tick={{ fontSize: 11 }}
-                          label={{ value: "Age", position: "insideBottomRight", offset: -5, fill: "#999" }}
-                        />
-                        <YAxis 
-                          stroke="#999" 
-                          tick={{ fontSize: 11 }}
-                          label={{ value: `Net Worth (${currency.code})`, angle: -90, position: "insideLeft", fill: "#999" }}
-                          tickFormatter={formatChartAxis}
-                        />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px", color: "#fff" }}
-                          formatter={(value: any) => formatNumber(Number(value), currency.symbol)}
-                          labelFormatter={(label: any) => `Age ${label}`}
-                        />
-                        <Legend 
-                          wrapperStyle={{ color: "#d1d5db" }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="Net Worth" 
-                          stroke="#3b82f6" 
-                          strokeWidth={2}
-                          dot={false}
-                          isAnimationActive={false}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                    <p className="text-gray-500 text-xs mt-3 text-center">
-                      <span className="text-blue-400">─ Wealth Projection ({currency.code})</span> | Retirement age: <span className="text-red-400">{projectionData.retirement_age}</span>
-                    </p>
-                  </div>
-                )}
+          {/* Right: Results (3 cols) */}
+          <div className="lg:col-span-3 space-y-5">
+            {/* Stats Cards */}
+            {ageData && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 fade-in-up">
+                <div className="stat-card">
+                  <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">
+                    Net Worth at Age {selectedAge}
+                  </p>
+                  <p className="text-2xl font-bold text-cyan-400 number-pop" key={`nw-${selectedAge}`}>
+                    {formatFull(ageData.nominalNetWorth, currency)}
+                  </p>
+                  <p className="text-[11px] text-gray-600 mt-1">nominal value</p>
+                </div>
+                <div className="stat-card">
+                  <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">
+                    Inflation-Adjusted
+                  </p>
+                  <p className="text-2xl font-bold text-green-400 number-pop" key={`ia-${selectedAge}`}>
+                    {formatFull(ageData.inflationAdjustedNetWorth, currency)}
+                  </p>
+                  <p className="text-[11px] text-gray-600 mt-1">in today&apos;s value</p>
+                </div>
+                <div className="stat-card">
+                  <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">
+                    Annual Spending at {selectedAge}
+                  </p>
+                  <p className="text-2xl font-bold text-orange-400 number-pop" key={`sp-${selectedAge}`}>
+                    {formatFull(ageData.spendingAtAge, currency)}
+                  </p>
+                  <p className="text-[11px] text-gray-600 mt-1">accounting for inflation</p>
+                </div>
               </div>
             )}
+
+            {/* Selected Age Slider */}
+            {result && (
+              <div className="glass-card p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[11px] text-gray-400 uppercase font-bold tracking-wider">
+                    Selected Age
+                  </p>
+                  <p className="text-lg font-bold text-indigo-400">
+                    {selectedAge} years old
+                    <span className="text-xs text-gray-500 font-normal ml-2">
+                      ({selectedAge - formData.current_age} years from now)
+                    </span>
+                  </p>
+                </div>
+                <input type="range" min={formData.current_age} max={100} step={1}
+                  value={selectedAge}
+                  onChange={(e) => setSelectedAge(parseInt(e.target.value))} />
+              </div>
+            )}
+
+            {/* Chart */}
+            {result && (
+              <div className="glass-card p-5">
+                <ProjectionChart
+                  data={result.projection}
+                  retirementAge={formData.retirement_age}
+                  milestones={result.milestones}
+                  currency={currency}
+                  isDark={isDark}
+                  onAgeSelect={setSelectedAge}
+                />
+              </div>
+            )}
+
+            {/* Milestones */}
+            {result && <Milestones milestones={result.milestones} currency={currency} />}
+
+            {/* Narrative */}
+            {narrative && <Narrative narrative={narrative} />}
+
+            {/* Insights */}
+            {insights.length > 0 && <InsightsPanel insights={insights} />}
           </div>
         </div>
       </div>
     </main>
-  );
-}
-
-// Simple helper component for inputs
-function InputGroup({ label, name, value, onChange, hint}: any) {
-  return (
-    <div>
-      <div className="flex justify-between items-baseline mb-1">
-      <label className="block text-xs text-gray-400 mb-1 uppercase font-bold tracking-wide">{label}</label>
-      {/* Render the hint if it exists */}
-        {hint && (
-          <span className="text-xs text-green-400 font-mono font-medium">
-            {hint}
-          </span>
-        )}
-      </div>
-      <input
-        type="number"
-        name={name}
-        value={value}
-        onChange={onChange}
-        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
-      />
-    </div>
   );
 }

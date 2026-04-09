@@ -1,26 +1,420 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --bg-primary: #0b0f1a;
+  --bg-secondary: #111827;
+  --bg-card: #1a1f35;
+  --bg-card-hover: #1f2640;
+  --bg-input: #151b2e;
+  --border-primary: rgba(99, 102, 241, 0.2);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-blue: #6366f1;
+  --accent-cyan: #22d3ee;
+  --accent-green: #34d399;
+  --accent-amber: #fbbf24;
+  --accent-rose: #fb7185;
+  --accent-purple: #a78bfa;
+  --glass-bg: rgba(30, 41, 75, 0.5);
+  --glass-border: rgba(99, 102, 241, 0.15);
+  --tooltip-bg: #1e293b;
+  --insight-bg-from: rgba(30, 41, 75, 0.6);
+  --insight-bg-to: rgba(30, 41, 75, 0.3);
+  --insight-bg-hover-from: rgba(30, 41, 75, 0.8);
+  --insight-bg-hover-to: rgba(30, 41, 75, 0.5);
+  --narrative-bg-from: rgba(99, 102, 241, 0.06);
+  --narrative-bg-to: rgba(139, 92, 246, 0.06);
+  --page-bg-from: #0b0f1a;
+  --page-bg-to: #111827;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ========== Light Theme ========== */
+[data-theme="light"] {
+  --bg-primary: #f0f4ff;
+  --bg-secondary: #e8edf8;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f5f7ff;
+  --bg-input: #eef1fb;
+  --border-primary: rgba(99, 102, 241, 0.25);
+  --border-subtle: rgba(99, 102, 241, 0.12);
+  --text-primary: #1e2340;
+  --text-secondary: #4b5680;
+  --text-muted: #7c87b0;
+  --accent-blue: #5457e0;
+  --accent-cyan: #0891b2;
+  --accent-green: #059669;
+  --accent-amber: #d97706;
+  --accent-rose: #e11d48;
+  --accent-purple: #7c3aed;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(99, 102, 241, 0.2);
+  --tooltip-bg: #ffffff;
+  --insight-bg-from: rgba(238, 241, 251, 0.9);
+  --insight-bg-to: rgba(238, 241, 251, 0.6);
+  --insight-bg-hover-from: rgba(228, 232, 248, 1);
+  --insight-bg-hover-to: rgba(228, 232, 248, 0.8);
+  --narrative-bg-from: rgba(99, 102, 241, 0.04);
+  --narrative-bg-to: rgba(139, 92, 246, 0.04);
+  --page-bg-from: #e8edf8;
+  --page-bg-to: #f0f4ff;
+}
+
+@theme inline {
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ========== Glass Card ========== */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 30px rgba(99, 102, 241, 0.08);
+}
+
+/* ========== Slider Styles ========== */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent-blue) 0%, var(--accent-purple) 100%);
+  outline: none;
+  cursor: pointer;
+  margin-top: 6px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--accent-blue);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.6);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--accent-blue);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+  cursor: pointer;
+}
+
+/* ========== Number Input ========== */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input-field {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-size: 15px;
+  width: 100%;
+  transition: all 0.2s ease;
+  font-family: var(--font-mono), monospace;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* ========== Animate number changes ========== */
+@keyframes numberPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.number-pop {
+  animation: numberPop 0.3s ease-out;
+}
+
+/* ========== Animate fade in ========== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* ========== Pulse glow ========== */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+  50% { box-shadow: 0 0 20px 4px rgba(99, 102, 241, 0.15); }
+}
+
+.pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+/* ========== Tooltip ========== */
+.tooltip-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--accent-blue);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+  margin-left: 6px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.tooltip-trigger:hover {
+  background: rgba(99, 102, 241, 0.4);
+  transform: scale(1.15);
+}
+
+.tooltip-content {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--tooltip-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  width: 260px;
+  z-index: 50;
+  line-height: 1.5;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  font-weight: 400;
+}
+
+.tooltip-trigger:hover .tooltip-content {
+  display: block;
+}
+
+/* ========== Preset Buttons ========== */
+.preset-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.preset-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.preset-btn.active {
+  border-color: var(--accent-blue);
+  color: white;
+  background: var(--accent-blue);
+}
+
+/* ========== Insight Cards ========== */
+.insight-card {
+  background: linear-gradient(135deg, var(--insight-bg-from), var(--insight-bg-to));
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.insight-card:hover {
+  border-color: rgba(99, 102, 241, 0.25);
+  background: linear-gradient(135deg, var(--insight-bg-hover-from), var(--insight-bg-hover-to));
+}
+
+/* ========== Milestone Badge ========== */
+.milestone-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.milestone-achievement {
+  background: rgba(52, 211, 153, 0.12);
+  color: var(--accent-green);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+.milestone-warning {
+  background: rgba(251, 113, 133, 0.12);
+  color: var(--accent-rose);
+  border: 1px solid rgba(251, 113, 133, 0.2);
+}
+
+.milestone-fire {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--accent-amber);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
+/* ========== Narrative Box ========== */
+.narrative-box {
+  background: linear-gradient(135deg, var(--narrative-bg-from), var(--narrative-bg-to));
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 20px;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+/* ========== Spending Model Toggle ========== */
+.toggle-group {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-input);
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+}
+
+.toggle-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-btn.active {
+  background: var(--accent-blue);
+  color: white;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+/* ========== Stat Card ========== */
+.stat-card {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+/* ========== Scrollbar ========== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.4);
+}
+
+/* ========== Section Heading ========== */
+.section-heading {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* ========== Gradient Text ========== */
+.gradient-text {
+  background: linear-gradient(135deg, #6366f1, #a78bfa, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
