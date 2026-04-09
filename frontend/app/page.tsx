@@ -22,6 +22,40 @@ const PRESETS = {
   aggressive: { annual_return: 12, label: "Aggressive" },
 };
 
+/**
+ * FIRE spending presets by currency code.
+ * Values represent typical annual spending for each FIRE category.
+ * Sources: country-specific FIRE community benchmarks.
+ */
+const FIRE_PRESETS: Record<string, { lean: number; chubby: number; fat: number }> = {
+  // USA: Lean ~$40k (frugal, LCOL), Chubby ~$100k (comfortable), Fat ~$200k+ (r/fatFIRE threshold)
+  USD: { lean: 40000,    chubby: 100000,   fat: 250000   },
+  // Europe: roughly 80% of USD given lower healthcare costs
+  EUR: { lean: 24000,    chubby: 80000,    fat: 200000   },
+  // UK: similar to USD in metro areas, lower elsewhere
+  GBP: { lean: 25000,    chubby: 75000,    fat: 180000   },
+  // Japan: Tokyo-centric; Yen-adjusted for LCOL-to-luxury range
+  JPY: { lean: 3600000,  chubby: 10000000, fat: 25000000 },
+  // China: Tier 1 city basis (Shanghai/Beijing)
+  CNY: { lean: 120000,   chubby: 360000,   fat: 900000   },
+  // India: ₹50k/mo lean → ₹2L/mo chubby → ₹6L/mo fat
+  INR: { lean: 600000,   chubby: 2400000,  fat: 7200000  },
+  // Australia: higher COL than US; Fat FIRE is AU$250k+
+  AUD: { lean: 50000,    chubby: 120000,   fat: 250000   },
+  // Canada: similar to US but slightly lower
+  CAD: { lean: 45000,    chubby: 100000,   fat: 220000   },
+  // Switzerland: one of the highest COL countries in the world
+  CHF: { lean: 60000,    chubby: 150000,   fat: 350000   },
+  // Singapore: high COL, especially housing; Fat FIRE ~S$300k
+  SGD: { lean: 48000,    chubby: 120000,   fat: 300000   },
+};
+
+const FIRE_LABELS = {
+  lean:   { label: "Lean",   desc: "Frugal lifestyle, bare essentials covered" },
+  chubby: { label: "Chubby", desc: "Comfortable lifestyle with moderate luxuries" },
+  fat:    { label: "Fat",    desc: "Wealthy lifestyle with full financial freedom" },
+};
+
 const TOOLTIPS: Record<string, string> = {
   annual_return:
     "The average historical return of the S&P 500 is ~10% before inflation (~7% after). Bond-heavy portfolios average 4–6%.",
@@ -42,6 +76,7 @@ export default function Home() {
   const [isDark, setIsDark] = useState(true);
   const [currency, setCurrency] = useState(CURRENCIES[0]);
   const [activePreset, setActivePreset] = useState<string | null>("moderate");
+  const [fireLevel, setFireLevel] = useState<string | null>(null);
   const [formData, setFormData] = useState<RetirementInputs>({
     current_age: 30,
     retirement_age: 60,
@@ -210,9 +245,38 @@ export default function Home() {
 
             <div className="glass-card p-5 space-y-4">
               <p className="section-heading">Spending & Tax</p>
+              {/* FIRE Level Selector */}
+              <div>
+                <div className="flex items-center mb-1.5">
+                  <p className="text-[11px] text-gray-400 uppercase font-bold tracking-wider">FIRE Level</p>
+                  <span className="tooltip-trigger">
+                    ?
+                    <span className="tooltip-content">Auto-fills yearly spending based on common FIRE benchmarks for your currency. Lean: frugal. Chubby: comfortable. Fat: wealthy lifestyle.</span>
+                  </span>
+                </div>
+                <div className="toggle-group">
+                  {(Object.entries(FIRE_LABELS) as [string, { label: string; desc: string }][]).map(([key, { label, desc }]) => {
+                    const presets = FIRE_PRESETS[currency.code] ?? FIRE_PRESETS["USD"];
+                    return (
+                      <button
+                        key={key}
+                        className={`toggle-btn ${fireLevel === key ? "active" : ""}`}
+                        title={`${desc} — ${formatFull(presets[key as keyof typeof presets], currency)}/yr`}
+                        onClick={() => {
+                          const val = presets[key as keyof typeof presets];
+                          setFireLevel(key);
+                          setFormData((p) => ({ ...p, current_yearly_spending: val }));
+                        }}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InputGroup label="Yearly Spending" name="current_yearly_spending"
-                  value={formData.current_yearly_spending} onChange={handleChange}
+                  value={formData.current_yearly_spending}
+                  onChange={(e) => { setFireLevel(null); handleChange(e); }}
                   hint={formatFull(formData.current_yearly_spending, currency)}
                   tooltip={TOOLTIPS.current_yearly_spending} />
                 <InputGroup label="Tax Rate (%)" name="tax_rate" value={formData.tax_rate}
