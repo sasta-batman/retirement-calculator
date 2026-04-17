@@ -213,6 +213,11 @@ export default function Home() {
                 <InputGroup label="Retirement Age" name="retirement_age" value={formData.retirement_age}
                   onChange={handleChange} min={formData.current_age + 1} max={100} step={1} showSlider />
               </div>
+              {formData.retirement_age < formData.current_age && (
+                <div className="text-red-400 text-xs bg-red-900/20 p-2 rounded-lg border border-red-500/30">
+                  Retirement age cannot be less than current age.
+                </div>
+              )}
               <InputGroup label="Current Savings" name="current_savings" value={formData.current_savings}
                 onChange={handleChange} hint={formatFull(formData.current_savings, currency)} />
               <InputGroup label="Monthly Contribution" name="monthly_contribution"

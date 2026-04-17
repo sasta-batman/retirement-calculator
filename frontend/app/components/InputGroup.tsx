@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect, useRef } from "react";
 
 interface InputGroupProps {
   label: string;
@@ -16,6 +17,57 @@ interface InputGroupProps {
 export default function InputGroup({
   label, name, value, onChange, hint, tooltip, min, max, step = 1, showSlider = false,
 }: InputGroupProps) {
+  // Local string state allows empty/partial input while typing
+  const [displayValue, setDisplayValue] = useState(String(value));
+  const isFocused = useRef(false);
+
+  // Sync display with external value changes (e.g., presets, sliders)
+  // but only when the text input isn't focused — avoids overwriting mid-edit
+  useEffect(() => {
+    if (!isFocused.current) {
+      setDisplayValue(String(value));
+    }
+  }, [value]);
+
+  const fireChange = (numericValue: number) => {
+    // Create a synthetic-like event that matches what page.tsx expects
+    const syntheticEvent = {
+      target: { name, value: String(numericValue) },
+    } as React.ChangeEvent<HTMLInputElement>;
+    onChange(syntheticEvent);
+  };
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setDisplayValue(raw);
+
+    // If the field is empty or just a minus sign, don't fire a change yet
+    if (raw === "" || raw === "-" || raw === ".") return;
+
+    const parsed = parseFloat(raw);
+    if (!isNaN(parsed)) {
+      fireChange(parsed);
+    }
+  };
+
+  const handleFocus = () => {
+    isFocused.current = true;
+  };
+
+  const handleBlur = () => {
+    isFocused.current = false;
+    // On blur, if the field is empty or invalid, reset to the current value
+    const parsed = parseFloat(displayValue);
+    if (displayValue === "" || isNaN(parsed)) {
+      setDisplayValue(String(value));
+    } else {
+      // Normalize display (e.g., "05" → "5")
+      setDisplayValue(String(parsed));
+      // Ensure parent has the final value
+      fireChange(parsed);
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
@@ -37,8 +89,10 @@ export default function InputGroup({
       <input
         type="number"
         name={name}
-        value={value}
-        onChange={onChange}
+        value={displayValue}
+        onChange={handleTextChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
         step={step}
         className="input-field"
       />

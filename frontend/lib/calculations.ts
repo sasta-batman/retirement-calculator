@@ -73,8 +73,9 @@ export function calculateRetirementNetWorth(inputs: RetirementInputs): Projectio
   let inflation_adjusted_yearly_withdrawal =
     inputs.current_yearly_spending * Math.pow(1 + (inputs.inflation_rate / 100), (retirement_age - inputs.current_age));
 
-  // Tax adjustment
-  inflation_adjusted_yearly_withdrawal *= 100.0 / (100 - inputs.tax_rate);
+  // Tax adjustment (clamp to prevent division by zero if tax_rate >= 100)
+  const effectiveTaxRate = Math.min(inputs.tax_rate, 99);
+  inflation_adjusted_yearly_withdrawal *= 100.0 / (100 - effectiveTaxRate);
 
   let totalContributions = inputs.current_savings;
   let cumulativeContributionsThisYear = 0;
