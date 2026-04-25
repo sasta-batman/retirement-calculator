@@ -161,15 +161,15 @@ export default function RetirementCalculator() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold gradient-text">Retirement Planner</h1>
-            <p className="text-sm text-gray-500 mt-1">Interactive Financial Projections</p>
+            <h1 className="text-3xl font-bold" style={{ color: "var(--text-primary)" }}>Retirement Planner</h1>
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Interactive Financial Projections</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm hidden sm:inline" style={{ color: "var(--text-muted)" }}>Currency</span>
             <select
               value={currency.code}
               onChange={(e) => setCurrency(CURRENCIES.find((c) => c.code === e.target.value)!)}
-              className="bg-indigo-600/20 text-indigo-300 text-sm px-3 py-2 rounded-lg border border-indigo-500/30 cursor-pointer focus:outline-none"
+              className="select-field"
               title="Select Currency"
             >
               {CURRENCIES.map((c) => (
@@ -181,15 +181,15 @@ export default function RetirementCalculator() {
               onClick={() => setIsDark((d) => !d)}
               title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
               style={{
-                width: 40, height: 40,
+                width: 36, height: 36,
                 borderRadius: "50%",
-                border: "1px solid var(--glass-border)",
-                background: "var(--glass-bg)",
+                border: "1px solid var(--border-subtle)",
+                background: "var(--bg-card)",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 18,
+                fontSize: 16,
                 transition: "all 0.2s ease",
                 flexShrink: 0,
               }}
@@ -204,7 +204,7 @@ export default function RetirementCalculator() {
           {/* Left: Inputs (2 cols) */}
           <div className="lg:col-span-2 space-y-5">
             <div className="glass-card p-5 space-y-4">
-              <p className="section-heading">Personal Details</p>
+              <p className="section-heading" style={{ color: "var(--text-muted)" }}>Personal Details</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <InputGroup label="Current Age" name="current_age" value={formData.current_age}
                   onChange={handleChange} min={18} max={80} step={1} showSlider />
@@ -251,7 +251,7 @@ export default function RetirementCalculator() {
               {/* FIRE Level Selector */}
               <div>
                 <div className="flex items-center mb-1.5">
-                  <p className="text-[11px] text-gray-400 uppercase font-bold tracking-wider">FIRE Level</p>
+                  <p className="text-[11px] uppercase font-bold tracking-wider" style={{ color: "var(--text-muted)" }}>FIRE Level</p>
                   <span className="tooltip-trigger">
                     ?
                     <span className="tooltip-content">Auto-fills yearly spending based on common FIRE benchmarks for your currency. Lean: frugal. Chubby: comfortable. Fat: wealthy lifestyle.</span>
@@ -288,7 +288,7 @@ export default function RetirementCalculator() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <div className="flex items-center mb-1.5">
-                    <p className="text-[11px] text-gray-400 uppercase font-bold tracking-wider">
+                    <p className="text-[11px] uppercase font-bold tracking-wider" style={{ color: "var(--text-muted)" }}>
                       Spending Model
                     </p>
                     <span className="tooltip-trigger">
@@ -319,8 +319,8 @@ export default function RetirementCalculator() {
 
             {/* Required Variables */}
             {requiredVariables && (
-              <div className="glass-card p-5 space-y-3" style={{ borderColor: "rgba(251,191,36,0.2)" }}>
-                <p className="section-heading" style={{ color: "#fbbf24" }}>
+              <div className="glass-card required-section p-5 space-y-3">
+                <p className="section-heading required-heading">
                   🎯 What it takes to retire
                 </p>
                 <div className="space-y-2">
@@ -331,8 +331,8 @@ export default function RetirementCalculator() {
                     { label: "Required Yearly Spending", value: requiredVariables.expected_yearly_spending, fmt: (v: number) => formatFull(v, currency) },
                   ].map((item) => (
                     <div key={item.label} className="flex justify-between items-center p-2.5 rounded-lg" style={{ background: "var(--bg-input)" }}>
-                      <span className="text-gray-400 text-sm">{item.label}</span>
-                      <span className="text-amber-300 font-mono font-semibold text-sm">
+                      <span className="text-sm" style={{ color: "var(--text-secondary)" }}>{item.label}</span>
+                      <span className="font-mono font-semibold text-sm required-value">
                         {item.value != null ? item.fmt(item.value) : "N/A"}
                       </span>
                     </div>
@@ -348,31 +348,31 @@ export default function RetirementCalculator() {
             {ageData && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 fade-in-up">
                 <div className="stat-card">
-                  <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
                     Net Worth at Age {selectedAge}
                   </p>
-                  <p className="text-2xl font-bold text-cyan-400 number-pop" key={`nw-${selectedAge}`}>
+                  <p className="text-2xl font-bold number-pop" style={{ color: "var(--accent)" }} key={`nw-${selectedAge}`}>
                     {formatFull(ageData.nominalNetWorth, currency)}
                   </p>
-                  <p className="text-[11px] text-gray-600 mt-1">nominal value</p>
+                  <p className="text-[11px] mt-1" style={{ color: "var(--text-muted)" }}>nominal value</p>
                 </div>
                 <div className="stat-card">
-                  <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
                     Inflation-Adjusted
                   </p>
-                  <p className="text-2xl font-bold text-green-400 number-pop" key={`ia-${selectedAge}`}>
+                  <p className="text-2xl font-bold number-pop" style={{ color: "var(--text-primary)", opacity: 0.85 }} key={`ia-${selectedAge}`}>
                     {formatFull(ageData.inflationAdjustedNetWorth, currency)}
                   </p>
-                  <p className="text-[11px] text-gray-600 mt-1">in today&apos;s value</p>
+                  <p className="text-[11px] mt-1" style={{ color: "var(--text-muted)" }}>in today&apos;s value</p>
                 </div>
                 <div className="stat-card">
-                  <p className="text-[11px] text-gray-500 uppercase tracking-wider mb-1">
+                  <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
                     Annual Spending at {selectedAge}
                   </p>
-                  <p className="text-2xl font-bold text-orange-400 number-pop" key={`sp-${selectedAge}`}>
+                  <p className="text-2xl font-bold number-pop" style={{ color: "var(--text-secondary)" }} key={`sp-${selectedAge}`}>
                     {formatFull(ageData.spendingAtAge, currency)}
                   </p>
-                  <p className="text-[11px] text-gray-600 mt-1">accounting for inflation</p>
+                  <p className="text-[11px] mt-1" style={{ color: "var(--text-muted)" }}>accounting for inflation</p>
                 </div>
               </div>
             )}
@@ -381,12 +381,12 @@ export default function RetirementCalculator() {
             {result && (
               <div className="glass-card p-4">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-[11px] text-gray-400 uppercase font-bold tracking-wider">
+                  <p className="text-[11px] uppercase font-bold tracking-wider" style={{ color: "var(--text-muted)" }}>
                     Selected Age
                   </p>
-                  <p className="text-lg font-bold text-indigo-400">
+                  <p className="text-lg font-bold" style={{ color: "var(--accent)" }}>
                     {selectedAge} years old
-                    <span className="text-xs text-gray-500 font-normal ml-2">
+                    <span className="text-xs font-normal ml-2" style={{ color: "var(--text-muted)" }}>
                       ({selectedAge - formData.current_age} years from now)
                     </span>
                   </p>

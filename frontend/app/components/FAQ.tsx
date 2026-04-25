@@ -10,12 +10,7 @@ export default function FAQ() {
     <section className="w-full max-w-6xl mx-auto" id="faq">
       <h2
         className="text-2xl font-bold mb-6"
-        style={{
-          background: "linear-gradient(135deg, #6366f1, #a78bfa, #22d3ee)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-          backgroundClip: "text",
-        }}
+        style={{ color: "var(--text-primary)" }}
       >
         Frequently Asked Questions
       </h2>
@@ -27,7 +22,7 @@ export default function FAQ() {
             style={{
               borderColor:
                 openIndex === index
-                  ? "rgba(99, 102, 241, 0.3)"
+                  ? "var(--accent-border)"
                   : undefined,
             }}
           >
@@ -58,7 +53,7 @@ export default function FAQ() {
                   transition: "transform 0.3s ease",
                   flexShrink: 0,
                   fontSize: "12px",
-                  color: "var(--accent-blue)",
+                  color: "var(--accent)",
                 }}
               >
                 ▼

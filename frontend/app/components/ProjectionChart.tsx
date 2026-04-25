@@ -19,12 +19,14 @@ interface ProjectionChartProps {
 export default function ProjectionChart({
   data, retirementAge, milestones, currency, isDark, onAgeSelect,
 }: ProjectionChartProps) {
-  const axisColor = isDark ? "#64748b" : "#7c87b0";
-  const tooltipBg = isDark ? "#1a1f35" : "#ffffff";
-  const tooltipText = isDark ? "#f1f5f9" : "#1e2340";
-  const tooltipBorder = isDark ? "rgba(99,102,241,0.3)" : "rgba(99,102,241,0.2)";
-  const gridStroke = isDark ? "rgba(255,255,255,0.06)" : "rgba(99,102,241,0.08)";
-  const legendColor = isDark ? "#94a3b8" : "#4b5680";
+  const axisColor = isDark ? "#5c5f6a" : "#8b8f9a";
+  const tooltipBg = isDark ? "#1c1e27" : "#ffffff";
+  const tooltipText = isDark ? "#e8eaed" : "#1a1c23";
+  const tooltipBorder = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+  const gridStroke = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.06)";
+  const legendColor = isDark ? "#8b8f9a" : "#5c5f6a";
+  const accentColor = isDark ? "#2dd4a8" : "#0d9373";
+  const refLineColor = isDark ? "#5c5f6a" : "#8b8f9a";
 
   const handleClick = (chartData: any) => {
     if (chartData?.activeTooltipIndex !== undefined) {
@@ -40,8 +42,8 @@ export default function ProjectionChart({
         <AreaChart data={data} onClick={handleClick} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
           <defs>
             <linearGradient id="gradNetWorth" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.5} />
-              <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.05} />
+              <stop offset="5%" stopColor={accentColor} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={accentColor} stopOpacity={0.02} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
@@ -73,20 +75,20 @@ export default function ProjectionChart({
           <Legend wrapperStyle={{ color: legendColor, fontSize: "12px" }} />
           <ReferenceLine
             x={retirementAge}
-            stroke="#fbbf24"
+            stroke={refLineColor}
             strokeDasharray="6 3"
-            strokeWidth={1.5}
+            strokeWidth={1}
             label={{
               value: "Retirement",
               position: "top",
-              fill: "#fbbf24",
+              fill: refLineColor,
               fontSize: 11,
             }}
           />
           <Area
             type="monotone"
             dataKey="Net Worth"
-            stroke="#22d3ee"
+            stroke={accentColor}
             fill="url(#gradNetWorth)"
             strokeWidth={1.5}
             dot={false}

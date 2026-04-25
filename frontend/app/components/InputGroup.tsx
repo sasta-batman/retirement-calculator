@@ -72,7 +72,7 @@ export default function InputGroup({
     <div>
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center">
-          <label className="text-[11px] text-gray-400 uppercase font-bold tracking-wider">
+          <label className="text-[11px] uppercase font-bold tracking-wider" style={{ color: "var(--text-muted)" }}>
             {label}
           </label>
           {tooltip && (
@@ -83,7 +83,7 @@ export default function InputGroup({
           )}
         </div>
         {hint && (
-          <span className="text-xs text-indigo-400 font-mono font-medium">{hint}</span>
+          <span className="text-xs font-mono font-medium" style={{ color: "var(--accent)" }}>{hint}</span>
         )}
       </div>
       <input
