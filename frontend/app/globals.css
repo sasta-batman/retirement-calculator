@@ -11,7 +11,7 @@
   --border-subtle: rgba(255, 255, 255, 0.05);
   --text-primary: #e8eaed;
   --text-secondary: #8b8f9a;
-  --text-muted: #5c5f6a;
+  --text-muted: #7c8190;
 
   /* ── Single accent: soft teal ── */
   --accent: #2dd4a8;
@@ -449,7 +449,7 @@ input[type="number"]::-webkit-outer-spin-button {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   margin-bottom: 12px;
 }
 

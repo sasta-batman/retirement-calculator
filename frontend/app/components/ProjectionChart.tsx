@@ -39,7 +39,7 @@ export default function ProjectionChart({
     <div>
       <p className="section-heading">Wealth Projection (Click to Select Age)</p>
       <ResponsiveContainer width="100%" height={300}>
-        <AreaChart data={data} onClick={handleClick} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+        <AreaChart data={data} onClick={handleClick} margin={{ top: 5, right: 20, left: 5, bottom: 5 }}>
           <defs>
             <linearGradient id="gradNetWorth" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={accentColor} stopOpacity={0.3} />
@@ -57,6 +57,7 @@ export default function ProjectionChart({
             stroke={axisColor}
             tick={{ fontSize: 11, fill: axisColor }}
             tickFormatter={(v) => formatCompact(v, currency)}
+            width={80}
           />
           <Tooltip
             contentStyle={{

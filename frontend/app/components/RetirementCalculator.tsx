@@ -327,7 +327,7 @@ export default function RetirementCalculator() {
                   {[
                     { label: "Required Annual Return", value: requiredVariables.expected_yearly_roi, fmt: (v: number) => `${v.toFixed(2)}%` },
                     { label: "Required Monthly Contribution", value: requiredVariables.monthly_contribution, fmt: (v: number) => formatFull(v, currency) },
-                    { label: "Required Retirement Age", value: requiredVariables.retirement_age, fmt: (v: number) => `${Math.round(v)} years` },
+                    { label: "Required Retirement Age", value: requiredVariables.retirement_age, fmt: (v: number) => `${Math.ceil(v)} years` },
                     { label: "Required Yearly Spending", value: requiredVariables.expected_yearly_spending, fmt: (v: number) => formatFull(v, currency) },
                   ].map((item) => (
                     <div key={item.label} className="flex justify-between items-center p-2.5 rounded-lg" style={{ background: "var(--bg-input)" }}>
@@ -369,7 +369,7 @@ export default function RetirementCalculator() {
                   <p className="text-[11px] uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
                     Annual Spending at {selectedAge}
                   </p>
-                  <p className="text-2xl font-bold number-pop" style={{ color: "var(--text-secondary)" }} key={`sp-${selectedAge}`}>
+                <p className="text-2xl font-bold number-pop" style={{ color: "var(--text-primary)", opacity: 0.85 }} key={`ia-${selectedAge}`}>
                     {formatFull(ageData.spendingAtAge, currency)}
                   </p>
                   <p className="text-[11px] mt-1" style={{ color: "var(--text-muted)" }}>accounting for inflation</p>
